@@ -6,7 +6,7 @@ of paper money.
 
 Strategy in one line: stay in cash, buy only a capitulation-sized dip
 (close at least 0.90% below the close 60 bars earlier), and leave at
-+1.20% take profit, −1.80% stop loss, or after 600 bars — whichever first.
++1.35% take profit, −1.80% stop loss, or after 600 bars — whichever first.
 
 - `main.ts` — the bot (Node 22, TypeScript erasable syntax, stdlib only)
 - `vendor/makefun-bars.ts` — byte-identical copy of the kit's SDK shim
