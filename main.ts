@@ -28,8 +28,8 @@ import { runBars, type BarsState, type BuyInput, type SellInput } from './vendor
 const LOOKBACK_BARS = 60;
 /** Entry drop, in basis points of the trailing return (-0.90%). */
 const DROP_BPS = 90;
-/** Take profit, in basis points over the position's cost basis (+1.20%). */
-const TAKE_PROFIT_BPS = 120;
+/** Take profit, in basis points over the position's cost basis (+1.30%). */
+const TAKE_PROFIT_BPS = 130;
 /** Stop loss, in basis points under the position's cost basis (-1.80%). */
 const STOP_LOSS_BPS = 180;
 /** Time stop: leave a position that has not worked within this many bars. */
