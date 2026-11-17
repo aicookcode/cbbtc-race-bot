@@ -36,6 +36,12 @@ const STOP_LOSS_BPS = 180;
 const MAX_HOLD_BARS = 600;
 /** No new position once this many scored bars have passed (of 1,440). */
 const LAST_ENTRY_BAR = 1380;
+/** Zero-fill insurance: if no position has ever been opened by this scored
+ *  bar, the entry drop relaxes to FALLBACK_DROP_BPS (one position at most),
+ *  so a calm window cannot leave the bot with zero trades. */
+const FALLBACK_BAR = 850;
+/** Relaxed entry drop for the insurance entry (-0.55% within one hour). */
+const FALLBACK_DROP_BPS = 55;
 /** Slippage cap on every order, measured from the close it was decided on. */
 const MAX_SLIPPAGE_BPS = 150;
 
@@ -43,6 +49,10 @@ const MAX_SLIPPAGE_BPS = 150;
 const closes: number[] = [];
 /** Scored-bar index at which the current position was first seen held. */
 let entryBar: number | null = null;
+/** Whether any position has been held yet in this run. */
+let everEntered = false;
+/** Whether the relaxed insurance entry has already been taken. */
+let fallbackUsed = false;
 
 /** The position's mark-to-market return over its cost basis, in bps. */
 function returnBps(state: BarsState, symbol: string, qty: bigint, cost: bigint): number {
@@ -68,7 +78,11 @@ await runBars({
     const orders: (BuyInput | SellInput)[] = [];
 
     if (held !== undefined) {
-      if (entryBar === null) entryBar = scoredBar;
+      if (entryBar === null) {
+        entryBar = scoredBar;
+        everEntered = true;
+        if (scoredBar >= FALLBACK_BAR) fallbackUsed = true;
+      }
       const r = returnBps(state, symbol, held.qty, held.cost);
       const heldFor = scoredBar - entryBar;
       if (r >= TAKE_PROFIT_BPS || r <= -STOP_LOSS_BPS || heldFor >= MAX_HOLD_BARS) {
@@ -84,7 +98,10 @@ await runBars({
     const now = closes[closes.length - 1]!;
     const then = closes[closes.length - 1 - LOOKBACK_BARS]!;
     const trailingBps = (now / then - 1) * 10_000;
-    if (trailingBps > -DROP_BPS) return orders;
+    const primaryDip = trailingBps <= -DROP_BPS;
+    const fallbackDip = !everEntered && !fallbackUsed && scoredBar >= FALLBACK_BAR
+      && trailingBps <= -FALLBACK_DROP_BPS;
+    if (!primaryDip && !fallbackDip) return orders;
 
     const room = state.weightRoom(symbol);
     let stake = state.cash < room ? state.cash : room;
